@@ -4,12 +4,12 @@
 
 <table>
 <tr>
-<td><img src="bold_blue.png" width="300"></td>
-<td><img src="bold_orange.png" width="300"></td>
+<td><img src="assets/bold_blue.png" width="300"></td>
+<td><img src="assets/bold_orange.png" width="300"></td>
 </tr>
 <tr>
-<td><img src="bold_pink.png" width="300"></td>
-<td><img src="openai_blue_cover.png" width="300"></td>
+<td><img src="assets/bold_pink.png" width="300"></td>
+<td><img src="assets/openai_blue_cover.png" width="300"></td>
 </tr>
 </table>
 
