@@ -1,4 +1,6 @@
-name = "openai-cover-generator"
+# NOTE: Keep this name aligned with the workers.dev URL in Cloudflare.
+# This project is intentionally "genrator" (matching existing URL), not "generator".
+name = "openai-cover-genrator"
 compatibility_date = "2024-12-01"
 
 # Cloudflare Pages deploy target
