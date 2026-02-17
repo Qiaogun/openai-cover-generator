@@ -1,0 +1,12 @@
+{
+  "name": "openai-cover-generator",
+  "private": true,
+  "scripts": {
+    "build": "echo \"No build step required for static site\"",
+    "deploy": "wrangler pages deploy .",
+    "deploy:workers": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.65.0"
+  }
+}

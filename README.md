@@ -38,6 +38,31 @@ This repo includes GitHub Actions workflow:
 - File: `.github/workflows/deploy-cloudflare-pages.yml`
 - Trigger: push to `main` (and manual dispatch)
 - Deploy target: Cloudflare Pages (static frontend, no backend)
+- Worker name in `wrangler.toml` is set to `openai-cover-generator` (matching your existing URL).
+
+### Cloudflare Dashboard deploy command (important)
+
+If your Cloudflare build logs show this error:
+
+`It looks like you've run a Workers-specific command in a Pages project.`
+
+Change the deploy command from:
+
+```bash
+npx wrangler deploy
+```
+
+to:
+
+```bash
+npm run deploy
+# or: npx wrangler pages deploy .
+# workers.dev fallback: npm run deploy:workers
+```
+
+This repository now includes a `package.json` deploy script that targets **Pages** instead of Workers.
+
+If you deploy to a Workers URL such as `*.workers.dev`, this repo now also includes a Worker static-assets fallback, so you should still see the same `index.html` app instead of the default Hello World.
 
 ### 1) Create a Cloudflare Pages project
 
