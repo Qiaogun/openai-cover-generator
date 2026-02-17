@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>动态封面生成器</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #06070b;
+      color: #e8eaf3;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+    }
+    aside {
+      border-right: 1px solid rgba(255,255,255,0.12);
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(18,22,33,0.95), rgba(8,10,17,0.95));
+      overflow: auto;
+    }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    p { margin: 0 0 16px; color: #aeb4cc; font-size: 13px; }
+    .control { margin-bottom: 14px; }
+    .control label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #d6daf1;
+    }
+    input[type="range"], select {
+      width: 100%;
+      accent-color: #5f8cff;
+      background: transparent;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 4px;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 600;
+      background: linear-gradient(90deg, #5f8cff, #8c64ff);
+    }
+    main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+    .canvas-wrap {
+      width: min(100%, 1080px);
+      aspect-ratio: 16/9;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #0b1022;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    @media (max-width: 980px) {
+      body { grid-template-columns: 1fr; }
+      aside { border-right: 0; border-bottom: 1px solid rgba(255,255,255,0.12); }
+      .canvas-wrap { aspect-ratio: 4 / 3; }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>动态封面生成器</h1>
+    <p>可实时调节颜色范围、模糊程度、透明度及动画参数。</p>
+
+    <div class="row">
+      <div class="control">
+        <label for="hueMin">主色相最小值 <span id="hueMinV">190</span></label>
+        <input id="hueMin" type="range" min="0" max="360" value="190" />
+      </div>
+      <div class="control">
+        <label for="hueMax">主色相最大值 <span id="hueMaxV">280</span></label>
+        <input id="hueMax" type="range" min="0" max="360" value="280" />
+      </div>
+    </div>
+
+    <div class="control">
+      <label for="blur">模糊程度 <span id="blurV">72</span></label>
+      <input id="blur" type="range" min="0" max="120" value="72" />
+    </div>
+
+    <div class="control">
+      <label for="opacity">透明度 <span id="opacityV">0.72</span></label>
+      <input id="opacity" type="range" min="0.1" max="1" step="0.01" value="0.72" />
+    </div>
+
+    <div class="control">
+      <label for="speed">动画速度 <span id="speedV">0.65</span></label>
+      <input id="speed" type="range" min="0.1" max="2" step="0.05" value="0.65" />
+    </div>
+
+    <div class="control">
+      <label for="blobCount">光斑数量 <span id="blobCountV">8</span></label>
+      <input id="blobCount" type="range" min="3" max="14" value="8" />
+    </div>
+
+    <div class="control">
+      <label for="saturation">饱和度 <span id="saturationV">90</span></label>
+      <input id="saturation" type="range" min="30" max="100" value="90" />
+    </div>
+
+    <button id="randomizeBtn">随机生成一次</button>
+    <button id="downloadBtn">导出 PNG</button>
+  </aside>
+
+  <main>
+    <div class="canvas-wrap">
+      <canvas id="coverCanvas" width="1600" height="900"></canvas>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('coverCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const controls = {
+      hueMin: document.getElementById('hueMin'),
+      hueMax: document.getElementById('hueMax'),
+      blur: document.getElementById('blur'),
+      opacity: document.getElementById('opacity'),
+      speed: document.getElementById('speed'),
+      blobCount: document.getElementById('blobCount'),
+      saturation: document.getElementById('saturation'),
+    };
+
+    const labels = {
+      hueMin: document.getElementById('hueMinV'),
+      hueMax: document.getElementById('hueMaxV'),
+      blur: document.getElementById('blurV'),
+      opacity: document.getElementById('opacityV'),
+      speed: document.getElementById('speedV'),
+      blobCount: document.getElementById('blobCountV'),
+      saturation: document.getElementById('saturationV'),
+    };
+
+    let blobs = [];
+    let animationId;
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function createBlob(index) {
+      const hueMin = Number(controls.hueMin.value);
+      const hueMax = Number(controls.hueMax.value);
+      const hueRangeMin = Math.min(hueMin, hueMax);
+      const hueRangeMax = Math.max(hueMin, hueMax);
+      const hue = rand(hueRangeMin, hueRangeMax);
+
+      return {
+        x: rand(0.2, 0.8),
+        y: rand(0.15, 0.85),
+        radius: rand(0.16, 0.38),
+        hue,
+        phase: rand(0, Math.PI * 2),
+        orbitX: rand(0.05, 0.16),
+        orbitY: rand(0.05, 0.18),
+        frequency: rand(0.4, 1.4),
+        seed: index + Math.random() * 10,
+      };
+    }
+
+    function regenerateBlobs() {
+      const count = Number(controls.blobCount.value);
+      blobs = Array.from({ length: count }, (_, i) => createBlob(i));
+    }
+
+    function updateLabelValues() {
+      Object.keys(controls).forEach((key) => {
+        labels[key].textContent = controls[key].value;
+      });
+    }
+
+    function drawBackground(t) {
+      const hueMin = Number(controls.hueMin.value);
+      const hueMax = Number(controls.hueMax.value);
+      const centerHue = (Math.min(hueMin, hueMax) + Math.max(hueMin, hueMax)) / 2;
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, `hsl(${(centerHue - 25 + 360) % 360}, 45%, 12%)`);
+      gradient.addColorStop(1, `hsl(${(centerHue + 25) % 360}, 55%, 10%)`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const pulse = (Math.sin(t * 0.0005) + 1) / 2;
+      ctx.fillStyle = `rgba(255,255,255,${pulse * 0.03})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawBlobs(t) {
+      const blur = Number(controls.blur.value);
+      const opacity = Number(controls.opacity.value);
+      const saturation = Number(controls.saturation.value);
+      const speed = Number(controls.speed.value);
+      const time = t * 0.001 * speed;
+
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.filter = `blur(${blur}px)`;
+
+      blobs.forEach((blob) => {
+        const x = (blob.x + Math.sin(time * blob.frequency + blob.phase) * blob.orbitX) * canvas.width;
+        const y = (blob.y + Math.cos(time * (blob.frequency + 0.3) + blob.phase * 1.8) * blob.orbitY) * canvas.height;
+        const r = blob.radius * Math.min(canvas.width, canvas.height);
+
+        const radial = ctx.createRadialGradient(x, y, r * 0.02, x, y, r);
+        radial.addColorStop(0, `hsla(${blob.hue}, ${saturation}%, 62%, ${Math.min(1, opacity + 0.15)})`);
+        radial.addColorStop(0.45, `hsla(${(blob.hue + 18) % 360}, ${Math.min(100, saturation + 6)}%, 58%, ${opacity})`);
+        radial.addColorStop(1, `hsla(${(blob.hue + 42) % 360}, ${Math.max(20, saturation - 18)}%, 46%, 0)`);
+
+        ctx.fillStyle = radial;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function frame(t) {
+      drawBackground(t);
+      drawBlobs(t);
+      animationId = requestAnimationFrame(frame);
+    }
+
+    function rerender() {
+      updateLabelValues();
+      if (animationId) cancelAnimationFrame(animationId);
+      frame(performance.now());
+    }
+
+    Object.values(controls).forEach((input) => {
+      input.addEventListener('input', () => {
+        updateLabelValues();
+        if (input === controls.blobCount || input === controls.hueMin || input === controls.hueMax) {
+          regenerateBlobs();
+        }
+      });
+    });
+
+    document.getElementById('randomizeBtn').addEventListener('click', () => {
+      const min = Math.floor(rand(0, 260));
+      const max = Math.floor(rand(min + 20, 360));
+      controls.hueMin.value = min;
+      controls.hueMax.value = max;
+      controls.blur.value = Math.floor(rand(25, 95));
+      controls.opacity.value = rand(0.35, 0.9).toFixed(2);
+      controls.speed.value = rand(0.25, 1.5).toFixed(2);
+      controls.saturation.value = Math.floor(rand(55, 100));
+      controls.blobCount.value = Math.floor(rand(5, 13));
+      regenerateBlobs();
+      updateLabelValues();
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `dynamic-cover-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    regenerateBlobs();
+    rerender();
+  </script>
+</body>
+</html>
