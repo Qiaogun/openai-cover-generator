@@ -75,7 +75,7 @@
 <body>
   <aside>
     <h1>动态封面生成器</h1>
-    <p>可实时调节颜色范围、模糊程度、透明度及动画参数。</p>
+    <p>可实时调节颜色范围、模糊程度、透明度及径向叠加参数。</p>
 
     <div class="row">
       <div class="control">
@@ -104,7 +104,7 @@
     </div>
 
     <div class="control">
-      <label for="blobCount">光斑数量 <span id="blobCountV">8</span></label>
+      <label for="blobCount">径向图层数量 <span id="blobCountV">8</span></label>
       <input id="blobCount" type="range" min="3" max="14" value="8" />
     </div>
 
@@ -147,14 +147,14 @@
       saturation: document.getElementById('saturationV'),
     };
 
-    let blobs = [];
+    let layers = [];
     let animationId;
 
     function rand(min, max) {
       return Math.random() * (max - min) + min;
     }
 
-    function createBlob(index) {
+    function createLayer(index) {
       const hueMin = Number(controls.hueMin.value);
       const hueMax = Number(controls.hueMax.value);
       const hueRangeMin = Math.min(hueMin, hueMax);
@@ -162,21 +162,27 @@
       const hue = rand(hueRangeMin, hueRangeMax);
 
       return {
-        x: rand(0.2, 0.8),
-        y: rand(0.15, 0.85),
-        radius: rand(0.16, 0.38),
+        x: rand(0.1, 0.9),
+        y: rand(0.12, 0.88),
+        radiusX: rand(0.22, 0.52),
+        radiusY: rand(0.18, 0.46),
         hue,
         phase: rand(0, Math.PI * 2),
-        orbitX: rand(0.05, 0.16),
-        orbitY: rand(0.05, 0.18),
-        frequency: rand(0.4, 1.4),
-        seed: index + Math.random() * 10,
+        orbitX: rand(0.02, 0.09),
+        orbitY: rand(0.02, 0.09),
+        frequency: rand(0.2, 1.2),
+        rotation: rand(0, 360),
+        rotationSpeed: rand(-16, 16),
+        skewX: rand(-14, 14),
+        skewY: rand(-14, 14),
+        pulse: rand(0.88, 1.18),
+        seed: index + Math.random() * 100,
       };
     }
 
-    function regenerateBlobs() {
+    function regenerateLayers() {
       const count = Number(controls.blobCount.value);
-      blobs = Array.from({ length: count }, (_, i) => createBlob(i));
+      layers = Array.from({ length: count }, (_, i) => createLayer(i));
     }
 
     function updateLabelValues() {
@@ -190,40 +196,51 @@
       const hueMax = Number(controls.hueMax.value);
       const centerHue = (Math.min(hueMin, hueMax) + Math.max(hueMin, hueMax)) / 2;
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, `hsl(${(centerHue - 25 + 360) % 360}, 45%, 12%)`);
-      gradient.addColorStop(1, `hsl(${(centerHue + 25) % 360}, 55%, 10%)`);
+      gradient.addColorStop(0, `hsl(${(centerHue - 20 + 360) % 360}, 42%, 95%)`);
+      gradient.addColorStop(1, `hsl(${(centerHue + 20) % 360}, 48%, 92%)`);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const pulse = (Math.sin(t * 0.0005) + 1) / 2;
-      ctx.fillStyle = `rgba(255,255,255,${pulse * 0.03})`;
+      ctx.fillStyle = `rgba(255,255,255,${0.04 + pulse * 0.02})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    function drawBlobs(t) {
+    function drawLayers(t) {
       const blur = Number(controls.blur.value);
       const opacity = Number(controls.opacity.value);
       const saturation = Number(controls.saturation.value);
       const speed = Number(controls.speed.value);
       const time = t * 0.001 * speed;
+      const minSide = Math.min(canvas.width, canvas.height);
 
-      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalCompositeOperation = 'source-over';
       ctx.filter = `blur(${blur}px)`;
 
-      blobs.forEach((blob) => {
-        const x = (blob.x + Math.sin(time * blob.frequency + blob.phase) * blob.orbitX) * canvas.width;
-        const y = (blob.y + Math.cos(time * (blob.frequency + 0.3) + blob.phase * 1.8) * blob.orbitY) * canvas.height;
-        const r = blob.radius * Math.min(canvas.width, canvas.height);
+      layers.forEach((layer) => {
+        const x = (layer.x + Math.sin(time * layer.frequency + layer.phase) * layer.orbitX) * canvas.width;
+        const y = (layer.y + Math.cos(time * (layer.frequency + 0.27) + layer.phase * 1.9) * layer.orbitY) * canvas.height;
+        const pulse = layer.pulse + Math.sin(time * (layer.frequency + 0.4) + layer.seed) * 0.1;
+        const rx = Math.max(40, layer.radiusX * minSide * pulse);
+        const ry = Math.max(40, layer.radiusY * minSide * pulse);
+        const rotation = (layer.rotation + time * layer.rotationSpeed * 30) * (Math.PI / 180);
 
-        const radial = ctx.createRadialGradient(x, y, r * 0.02, x, y, r);
-        radial.addColorStop(0, `hsla(${blob.hue}, ${saturation}%, 62%, ${Math.min(1, opacity + 0.15)})`);
-        radial.addColorStop(0.45, `hsla(${(blob.hue + 18) % 360}, ${Math.min(100, saturation + 6)}%, 58%, ${opacity})`);
-        radial.addColorStop(1, `hsla(${(blob.hue + 42) % 360}, ${Math.max(20, saturation - 18)}%, 46%, 0)`);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.transform(1, Math.tan((layer.skewY * Math.PI) / 180), Math.tan((layer.skewX * Math.PI) / 180), 1, 0, 0);
+        ctx.scale(rx, ry);
+
+        const radial = ctx.createRadialGradient(0, 0, 0.02, 0, 0, 1);
+        radial.addColorStop(0, `hsla(${layer.hue}, ${Math.min(100, saturation + 8)}%, 64%, ${Math.min(1, opacity + 0.15)})`);
+        radial.addColorStop(0.5, `hsla(${(layer.hue + 22) % 360}, ${Math.min(100, saturation + 4)}%, 60%, ${opacity * 0.9})`);
+        radial.addColorStop(1, `hsla(${(layer.hue + 40) % 360}, ${Math.max(25, saturation - 22)}%, 56%, 0)`);
 
         ctx.fillStyle = radial;
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.arc(0, 0, 1, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
       });
 
       ctx.filter = 'none';
@@ -232,7 +249,7 @@
 
     function frame(t) {
       drawBackground(t);
-      drawBlobs(t);
+      drawLayers(t);
       animationId = requestAnimationFrame(frame);
     }
 
@@ -246,7 +263,7 @@
       input.addEventListener('input', () => {
         updateLabelValues();
         if (input === controls.blobCount || input === controls.hueMin || input === controls.hueMax) {
-          regenerateBlobs();
+          regenerateLayers();
         }
       });
     });
@@ -260,8 +277,8 @@
       controls.opacity.value = rand(0.35, 0.9).toFixed(2);
       controls.speed.value = rand(0.25, 1.5).toFixed(2);
       controls.saturation.value = Math.floor(rand(55, 100));
-      controls.blobCount.value = Math.floor(rand(5, 13));
-      regenerateBlobs();
+      controls.blobCount.value = Math.floor(rand(4, 13));
+      regenerateLayers();
       updateLabelValues();
     });
 
@@ -272,7 +289,7 @@
       link.click();
     });
 
-    regenerateBlobs();
+    regenerateLayers();
     rerender();
   </script>
 </body>
