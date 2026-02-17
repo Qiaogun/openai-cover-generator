@@ -1,3 +1,12 @@
 name = "openai-cover-generator"
 compatibility_date = "2024-12-01"
+
+# Cloudflare Pages deploy target
 pages_build_output_dir = "."
+
+# Cloudflare Workers deploy target (workers.dev)
+main = "src/worker.js"
+
+[assets]
+directory = "."
+binding = "ASSETS"

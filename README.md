@@ -56,9 +56,12 @@ to:
 ```bash
 npm run deploy
 # or: npx wrangler pages deploy .
+# workers.dev fallback: npm run deploy:workers
 ```
 
 This repository now includes a `package.json` deploy script that targets **Pages** instead of Workers.
+
+If you deploy to a Workers URL such as `*.workers.dev`, this repo now also includes a Worker static-assets fallback, so you should still see the same `index.html` app instead of the default Hello World.
 
 ### 1) Create a Cloudflare Pages project
 
