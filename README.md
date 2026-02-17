@@ -1,4 +1,4 @@
-# openai cover generator skill
+# openai cover generator
 
 #### Generate bold, vibrant gradient cover images inspired by OpenAI's design aesthetic.
 
@@ -13,19 +13,29 @@
 </tr>
 </table>
 
-## How It Works
+## New: Dynamic Generator UI
 
-1. **Color Palette**: Generates 5 bold, vibrant colors with high saturation (0.75-0.95)
-2. **Gradient Centers**: Creates 6 color centers at strategic positions with weighted exponential falloff
-3. **Flow Distortion**: Adds organic wave-like patterns using sine/cosine functions
-4. **Multi-Scale Blur**: Applies Gaussian blur at multiple scales for ultra-smooth gradients
-5. **Vibrancy Boost**: Enhances saturation (1.25x) and contrast (1.15x)
+A new browser-based dynamic generator is available in `index.html` with a real-time control panel:
 
-## Usage
+- Main hue range (min/max)
+- Blur amount
+- Opacity
+- Animation speed
+- Blob count and saturation
+- One-click randomize and PNG export
+
+Run locally:
 
 ```bash
-python generate_cover.py -o cover.png -c blue
-python generate_cover.py -c #FF5733 -r 1:1
+python -m http.server 8000
+# open http://localhost:8000/index.html
+```
+
+## Python Static Generator (original)
+
+```bash
+python openai-cover-generator/scripts/generate_cover.py -o cover.png -c blue
+python openai-cover-generator/scripts/generate_cover.py -c '#FF5733' -r 1:1
 ```
 
 Options: `-o` output, `-c` theme color, `-r` ratio, `-w` width, `-ht` height
