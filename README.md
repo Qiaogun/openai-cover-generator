@@ -13,16 +13,16 @@
 </tr>
 </table>
 
-## New: Dynamic Generator UI
+## Dynamic Generator UI (Frontend-only)
 
-A new browser-based dynamic generator is available in `index.html` with a real-time control panel:
+`index.html` is a pure frontend dynamic generator with real-time controls:
 
 - Main hue range (min/max)
 - Blur amount
 - Opacity
 - Animation speed
 - Blob count and saturation
-- One-click randomize and PNG export
+- Randomize and PNG export
 
 Run locally:
 
@@ -30,6 +30,33 @@ Run locally:
 python -m http.server 8000
 # open http://localhost:8000/index.html
 ```
+
+## Cloudflare Pages CI/CD
+
+This repo includes GitHub Actions workflow:
+
+- File: `.github/workflows/deploy-cloudflare-pages.yml`
+- Trigger: push to `main` (and manual dispatch)
+- Deploy target: Cloudflare Pages (static frontend, no backend)
+
+### 1) Create a Cloudflare Pages project
+
+- In Cloudflare Dashboard → Pages → Create application → Connect to Git.
+- Use this repository and set framework to **None**.
+- Build command: leave empty.
+- Build output directory: `.`
+
+### 2) Configure GitHub repository secrets
+
+Add these repository secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_PAGES_PROJECT` (your Pages project name)
+
+### 3) Push to main
+
+After pushing to `main`, GitHub Actions automatically deploys the latest static site to Cloudflare Pages.
 
 ## Python Static Generator (original)
 
