@@ -38,7 +38,7 @@ This repo includes GitHub Actions workflow:
 - File: `.github/workflows/deploy-cloudflare-pages.yml`
 - Trigger: push to `main` (and manual dispatch)
 - Deploy target: Cloudflare Pages (static frontend, no backend)
-- Worker name in `wrangler.toml` is set to `openai-cover-genrator` (matching your existing URL).
+- Worker name in `wrangler.toml` is set to `openai-cover-generator` (matching your existing URL).
 
 ### Cloudflare Dashboard deploy command (important)
 
