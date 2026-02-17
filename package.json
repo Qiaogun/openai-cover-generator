@@ -1,0 +1,10 @@
+{
+  "name": "openai-cover-generator",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler pages deploy ."
+  },
+  "devDependencies": {
+    "wrangler": "^4.65.0"
+  }
+}

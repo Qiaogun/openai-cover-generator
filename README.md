@@ -39,6 +39,27 @@ This repo includes GitHub Actions workflow:
 - Trigger: push to `main` (and manual dispatch)
 - Deploy target: Cloudflare Pages (static frontend, no backend)
 
+### Cloudflare Dashboard deploy command (important)
+
+If your Cloudflare build logs show this error:
+
+`It looks like you've run a Workers-specific command in a Pages project.`
+
+Change the deploy command from:
+
+```bash
+npx wrangler deploy
+```
+
+to:
+
+```bash
+npm run deploy
+# or: npx wrangler pages deploy .
+```
+
+This repository now includes a `package.json` deploy script that targets **Pages** instead of Workers.
+
 ### 1) Create a Cloudflare Pages project
 
 - In Cloudflare Dashboard → Pages → Create application → Connect to Git.
