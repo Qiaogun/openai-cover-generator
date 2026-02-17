@@ -75,45 +75,45 @@
 <body>
   <aside>
     <h1>动态封面生成器</h1>
-    <p>可实时调节颜色范围、模糊程度、透明度及径向叠加参数。</p>
+    <p>可实时调节颜色范围、模糊程度、透明度及径向叠加参数（内置好看配色方案）。</p>
 
     <div class="row">
       <div class="control">
-        <label for="hueMin">主色相最小值 <span id="hueMinV">190</span></label>
-        <input id="hueMin" type="range" min="0" max="360" value="190" />
+        <label for="hueMin">主色相最小值 <span id="hueMinV">12</span></label>
+        <input id="hueMin" type="range" min="0" max="360" value="12" />
       </div>
       <div class="control">
-        <label for="hueMax">主色相最大值 <span id="hueMaxV">280</span></label>
-        <input id="hueMax" type="range" min="0" max="360" value="280" />
+        <label for="hueMax">主色相最大值 <span id="hueMaxV">208</span></label>
+        <input id="hueMax" type="range" min="0" max="360" value="208" />
       </div>
     </div>
 
     <div class="control">
-      <label for="blur">模糊程度 <span id="blurV">72</span></label>
-      <input id="blur" type="range" min="0" max="120" value="72" />
+      <label for="blur">模糊程度 <span id="blurV">82</span></label>
+      <input id="blur" type="range" min="10" max="200" value="82" />
     </div>
 
     <div class="control">
-      <label for="opacity">透明度 <span id="opacityV">0.72</span></label>
-      <input id="opacity" type="range" min="0.1" max="1" step="0.01" value="0.72" />
+      <label for="opacity">透明度 <span id="opacityV">0.62</span></label>
+      <input id="opacity" type="range" min="0.1" max="1" step="0.01" value="0.62" />
     </div>
 
     <div class="control">
-      <label for="speed">动画速度 <span id="speedV">0.65</span></label>
-      <input id="speed" type="range" min="0.1" max="2" step="0.05" value="0.65" />
+      <label for="speed">动画速度 <span id="speedV">0.55</span></label>
+      <input id="speed" type="range" min="0.1" max="2" step="0.05" value="0.55" />
     </div>
 
     <div class="control">
-      <label for="blobCount">径向图层数量 <span id="blobCountV">8</span></label>
-      <input id="blobCount" type="range" min="3" max="14" value="8" />
+      <label for="blobCount">径向图层数量 <span id="blobCountV">6</span></label>
+      <input id="blobCount" type="range" min="2" max="12" value="6" />
     </div>
 
     <div class="control">
-      <label for="saturation">饱和度 <span id="saturationV">90</span></label>
-      <input id="saturation" type="range" min="30" max="100" value="90" />
+      <label for="saturation">饱和度 <span id="saturationV">88</span></label>
+      <input id="saturation" type="range" min="35" max="100" value="88" />
     </div>
 
-    <button id="randomizeBtn">随机生成一次</button>
+    <button id="randomizeBtn">随机好看参数</button>
     <button id="downloadBtn">导出 PNG</button>
   </aside>
 
@@ -126,6 +126,13 @@
   <script>
     const canvas = document.getElementById('coverCanvas');
     const ctx = canvas.getContext('2d');
+    const RADIAL_PRESETS = [
+      { palette: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57'], hueMin: 8, hueMax: 208, blur: [70, 120], opacity: [0.48, 0.76], saturation: [78, 96], layers: [5, 9], speed: [0.35, 0.95] },
+      { palette: ['#6C5CE7', '#A29BFE', '#FD79A8', '#FDCB6E', '#6C5CE7'], hueMin: 260, hueMax: 345, blur: [70, 125], opacity: [0.45, 0.72], saturation: [74, 96], layers: [5, 8], speed: [0.3, 0.9] },
+      { palette: ['#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43'], hueMin: 190, hueMax: 320, blur: [65, 115], opacity: [0.46, 0.75], saturation: [82, 100], layers: [5, 9], speed: [0.35, 1.05] },
+      { palette: ['#F8B500', '#FF6B6B', '#FF8E53', '#C44569', '#574B90'], hueMin: 18, hueMax: 300, blur: [72, 128], opacity: [0.45, 0.72], saturation: [76, 96], layers: [5, 8], speed: [0.3, 0.95] },
+      { palette: ['#08D9D6', '#252A34', '#FF2E63', '#EAEAEA', '#F9F9F9'], hueMin: 170, hueMax: 350, blur: [75, 135], opacity: [0.4, 0.68], saturation: [68, 92], layers: [4, 7], speed: [0.25, 0.85] },
+    ];
 
     const controls = {
       hueMin: document.getElementById('hueMin'),
@@ -148,10 +155,37 @@
     };
 
     let layers = [];
+    let activePreset = RADIAL_PRESETS[0];
+    let activePaletteHues = [];
     let animationId;
 
     function rand(min, max) {
       return Math.random() * (max - min) + min;
+    }
+
+    function hexToHue(hex) {
+      const cleaned = hex.replace('#', '');
+      const r = parseInt(cleaned.slice(0, 2), 16) / 255;
+      const g = parseInt(cleaned.slice(2, 4), 16) / 255;
+      const b = parseInt(cleaned.slice(4, 6), 16) / 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const d = max - min;
+      if (d === 0) return 0;
+      let h = 0;
+      if (max === r) h = ((g - b) / d) % 6;
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      return (h * 60 + 360) % 360;
+    }
+
+    function setActivePreset(preset) {
+      activePreset = preset;
+      activePaletteHues = preset.palette.map(hexToHue);
+    }
+
+    function pickPreset() {
+      return RADIAL_PRESETS[Math.floor(rand(0, RADIAL_PRESETS.length))];
     }
 
     function createLayer(index) {
@@ -159,7 +193,11 @@
       const hueMax = Number(controls.hueMax.value);
       const hueRangeMin = Math.min(hueMin, hueMax);
       const hueRangeMax = Math.max(hueMin, hueMax);
-      const hue = rand(hueRangeMin, hueRangeMax);
+      const rangeHue = rand(hueRangeMin, hueRangeMax);
+      const paletteHue = activePaletteHues.length
+        ? activePaletteHues[Math.floor(rand(0, activePaletteHues.length))]
+        : rangeHue;
+      const hue = (paletteHue * 0.72 + rangeHue * 0.28 + rand(-12, 12) + 360) % 360;
 
       return {
         x: rand(0.1, 0.9),
@@ -196,8 +234,8 @@
       const hueMax = Number(controls.hueMax.value);
       const centerHue = (Math.min(hueMin, hueMax) + Math.max(hueMin, hueMax)) / 2;
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, `hsl(${(centerHue - 20 + 360) % 360}, 42%, 95%)`);
-      gradient.addColorStop(1, `hsl(${(centerHue + 20) % 360}, 48%, 92%)`);
+      gradient.addColorStop(0, `hsl(${(centerHue - 16 + 360) % 360}, 38%, 96%)`);
+      gradient.addColorStop(1, `hsl(${(centerHue + 18) % 360}, 46%, 93%)`);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -247,6 +285,21 @@
       ctx.globalCompositeOperation = 'source-over';
     }
 
+    function applyPreset(preset, withVariance = true) {
+      setActivePreset(preset);
+      const vary = (v, amount) => withVariance ? v + rand(-amount, amount) : v;
+      const pick = (range) => withVariance ? rand(range[0], range[1]) : (range[0] + range[1]) / 2;
+      controls.hueMin.value = Math.max(0, Math.min(360, Math.round(vary(preset.hueMin, 8))));
+      controls.hueMax.value = Math.max(0, Math.min(360, Math.round(vary(preset.hueMax, 12))));
+      controls.blur.value = Math.round(pick(preset.blur));
+      controls.opacity.value = pick(preset.opacity).toFixed(2);
+      controls.saturation.value = Math.round(pick(preset.saturation));
+      controls.blobCount.value = Math.round(pick(preset.layers));
+      controls.speed.value = pick(preset.speed).toFixed(2);
+      regenerateLayers();
+      updateLabelValues();
+    }
+
     function frame(t) {
       drawBackground(t);
       drawLayers(t);
@@ -269,17 +322,7 @@
     });
 
     document.getElementById('randomizeBtn').addEventListener('click', () => {
-      const min = Math.floor(rand(0, 260));
-      const max = Math.floor(rand(min + 20, 360));
-      controls.hueMin.value = min;
-      controls.hueMax.value = max;
-      controls.blur.value = Math.floor(rand(25, 95));
-      controls.opacity.value = rand(0.35, 0.9).toFixed(2);
-      controls.speed.value = rand(0.25, 1.5).toFixed(2);
-      controls.saturation.value = Math.floor(rand(55, 100));
-      controls.blobCount.value = Math.floor(rand(4, 13));
-      regenerateLayers();
-      updateLabelValues();
+      applyPreset(pickPreset(), true);
     });
 
     document.getElementById('downloadBtn').addEventListener('click', () => {
@@ -289,7 +332,7 @@
       link.click();
     });
 
-    regenerateLayers();
+    applyPreset(RADIAL_PRESETS[0], false);
     rerender();
   </script>
 </body>
